@@ -1,0 +1,855 @@
+---
+title: "Data 603 Project"
+author: "Melissa Hall, Victor Hart, Luke Larter, Dehao Wang"
+date: "03/12/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+$\textbf{Chapter 1: An Introduction}$
+
+Objective:
+-The objective of this project is to create a predictive model for estimating the gas mileage of petrol engine cars based on certain parameters of different car models.
+ 
+Project Rationale:
+-The need for transportation has resulted in increased demand for small, efficient passenger vehicles. Due to vehicle ownership costs over time, a key consideration for most buyers is how much gas the vehicle consumes for each mile covered. The higher this value, the greater the ownership cost of the vehicle. When a potential buyer is in the market for a vehicle, they might have many different features in mind. If they wish to prioritize gas mileage, they need to know which features affect fuel consumption, and which combination of features offers the best gas mileage, while this information may not be readily available. 
+In addition to increasing consumer operating costs, increased fuel consumption per mile will create increased CO2 emissions, so our model will help in knowing what features to choose to select for the “greenest” vehicle.
+
+Study Questions:
+The study will address the following questions:
+-Does having start and stop technology improve a vehicle’s mileage?
+-Which features are most influential in predicting a vehicle’s gas mileage?
+-Are certain independent variables correlated with one another?
+
+Dataset:
+-This dataset is a modified version of the dataset provided from the web server, sponsored by a contractor of the U.S. Government under contract DE-AC05-00OR22725. Accordingly, the U.S. Government retains a nonexclusive, royalty-free license to publish or reproduce these documents, or to allow others to do so, for U.S. Government purposes and confirm that the documents may be freely distributed and used for non-commercial, scientific and educational purposes.
+In predicting the attribute "mpg", 68 columns were removed as they contained information relating to other types of vehicles.
+
+The original data is available at:
+Environmental Protection Agency, “Fuel Economy Data,” Fuel Economy, Nov. 2019. [Online]. Available: https://www.fueleconomy.gov/feg/download.shtml. [Accessed: Dec. 03, 2019]
+
+
+$\textbf{Chapter 2: Methodology}$
+
+
+$\textit{Variables}$
+
+```{r include=F}
+variable = c("mpg", "fuel", "make", "model", "cylinders", "displacement", "drive", "transmission", "class", "year", "start_stop", "volume", "turbo_super")
+
+type = c("Dependent variable, Quantitative, Continuous","Independent variable, Qualitative, Nominal","Independent variable, Qualitative, Nominal","Independent variable, Qualitative, Nominal","Independent variable, Quantitative, Discrete","Independent variable, Quantitative, Continuous","Independent variable, Qualitative, Nominal","Independent variable, Qualitative, Nominal","Independent variable, Qualitative, Nominal","Independent variable, Quantitative, Discrete","Independent variable, Qualitative, Nominal","Independent variable, Quantitative, Discrete","Independent variable, Qualitative, Nominal")
+
+measurement = c("miles per gallon", "type: regular, premium", "32 types of vehicle make", "202 types of vehicle model", "number of cylinders", "liters", "2wd or 4wd", "automatic or manual", "compact, small, midsize, or large cars", "4-digit year", "0 = no start-stop system, 1 = has start-stop system", "cubic feet", "Y = has turbos or supercharger, N = no turbo or supercharger")
+
+description= c("How far a vehicle can travel with one gallon of petrol or diesel", "The type of fuel the vehicle requires", "Make of the vehicle", "Model of the vehicle", "The number of cylinders in the engine", "The total volume of all the cylinders in an engine", "The drivetrain type of the vehicle", "The transmission type of the vehicle", "The size class of the vehicle", "Year of the vehicle model", "Whether the vehicle has a start-stop system, shutting the vehicle down when it is stopped (ex. waiting at an intersection)", "The amount of passenger and storage room in the vehicle's interior", "Whether the vehicle has a turbo or supercharger, increasing engine power")
+
+var_table = data.frame(variable, type, measurement, description)
+```
+`r knitr::kable(var_table)`
+
+Initially, when using our entire dataset with 40,000 lines of data, when we checked the assumptions of the model, we were seeing strange intersecting "V" patterns in our residual and linearity plots. When consulting Dr. Thierry Chekouo Tekougang, he diagnosed this as probably being a consequence of our many of our data points being non-independent. This was because the original data set included multiple instances of each model of car, as different versions of the same model are released every few years, and many models are released as both a 4 wheel drive and 2 wheel drive,and as an automatic transmission and manual transmission. We went through several iterations of trying to get rid of this problem, but the only solution that got rid of this non-independence and got rid of the intersecting "V" in the residual plot was to only use a subset of the data. As such we only used cars from the year 2020 which were both 2 wheel drive and automatic transmission. This then meant that each model was represented only a single time, thus removing the non-independence. The strange intersecting "V"s were not present in the residual plot (see below) once this was done. 
+
+
+$\textit{Modeling Methods}$
+
+With a quantitative, continuous dependent variable we will use multiple linear regression.
+
+Create first order model without interactions
+
+- Assess relationship between response and predictors using a full model test
+
+- Assess significance of individual coefficients: t-test
+
+- Use stepwise regression procedure to select best variables for modelling, using p_{entry}=0.1 and  p_{remove} = 0
+
+- Identify any remaining non-significant variables: t-test
+
+- Remove non-significant variable from the model, check if variables can be dropped with partial F test
+
+- Repeat identify/check/removal until all variables in the first order model are significant
+
+
+Assumption check: multicollinearity
+
+- Investigate potential collinearity between independent variable pairs using pairs plot and VIF
+
+- If multicollinearity exists, create sub-models by removing one correlating variable at a time. Compare adjusted $R^2_{squared}$ values to determine which variable(s) to remove.
+
+- Repeat until there is an acceptable level (VIF < 5) of multicollinearity
+
+
+Create first order model with all interactions
+
+- Assess significance of interaction coefficients: t-test
+
+- Remove non-significant interactions from the model, check if variables can be dropped with partial F test
+
+- Repeat identify/check/removal until all interactions in the first order model are significant
+
+
+Assumption check: Linearity
+
+- Assess linearity of the residuals using a Residuals Plot
+
+- If the residuals are nonlinear, create a pairs plot to investigate higher order relationships between the independent variables and the dependent variable
+
+- Include higher-order variables in the model, identify whether they are significant: t-test
+
+- Compare higher-order model with the first-order model using their adjusted $R^2_{squared}$ values and decide which model to use
+
+
+Assumption check: Independence
+
+- Addressed in our data selection
+
+
+Assumption check: Homoscedasticity
+
+- Assess homoscedasticity of the residuals using a Scale-Location Plot, followed by a Breusch-Pagan test
+
+
+Assumption check: Normality
+
+- Assess normality of the residuals using a Histogram and Q-Q plot, followed by a Shapiro-Wilk test
+
+
+Assumption check: Outliers
+
+- Assess whether influential outliers exist in the data using a Residuals vs Leverage plot with Cook's Distance = 0.5
+
+- If influential outliers exist, remove those data points and create a new model using the process above
+
+- check linearity, homoscedasticity, normality assumptions again
+
+- Comparing the effects of the outliers' removal from the model (significant variables, assumptions, adjusted $R^2_{squared}$), decide if the data points should be removed.
+
+
+If homoscedasticity (but not normality) assumption is violated: attempt a log transformation. If homoscedasticity and normality assumptions are violated: attempt a Box Cox transformation.
+
+- Assess significance of individual coefficients after transformation: t-test
+
+- Remove any non-significant variable from the model, check if variables can be dropped with partial F test
+
+- Repeat identify/check/removal until all variables in the transformed order model are significant
+
+- check linearity, homoscedasticity, normality, and outliers assumptions again to see if there are changes or improvement.
+
+- Comparing the effects of the transformation on the model (significant variables, assumptions, adjusted $R^2_{squared}$), decide if the transformed model is a better fit.
+
+
+
+$\textbf{Chapter 3: Main results of the analysis}$
+
+The R packages we will be using are ggplot2, GGally, olsrr, lmtest, car, MASS.
+```{r include = FALSE}
+library(ggplot2) #for plotting
+library(GGally)
+library(olsrr) #for stepwise regression
+library(lmtest)  #for Breusch-Pagan test (homoscedasticity)
+library(car)     #for VIF (multicollinearity)
+library(MASS)    #for BoxCox transformation
+```
+
+```{r include=F}
+veh=read.csv("auto2020.csv")
+veh
+```
+
+$\textit{I. FIRST-ORDER MODEL}$
+
+```{r echo=F}
+vehmod=lm(mpg 
+          ~factor(fuel)
+          +cylinders 
+          +displacement
+          +factor(start_stop)
+          +volume
+          +factor(turbo_super)
+          +class, data=veh)
+```
+
+
+Assessing relationship between response variable and predictors: full model test
+
+H0: $\beta_1$ = $\beta_2$ = ... = $\beta_p$ = 0
+
+HA: at least one $\beta_i$ is not zero (i=1,2,...,p)
+
+```{r echo=FALSE}
+veh_null = lm(mpg~1,data=veh)
+anova(veh_null,vehmod)
+```
+
+ANOVA table
+```{r include=F}
+Source_Of_Variation = c("Regression", "Residual", "Total")
+Df = c(9,237,246)
+Sum_Of_Squares = c(11322,4592.7,15914.8)
+Mean_Square = c(Sum_Of_Squares[1]/Df[1],Sum_Of_Squares[2]/Df[2],NA)
+F_Statistic = c(Mean_Square[1]/Mean_Square[2],NA,NA)
+anova_table1 = data.frame(Source_Of_Variation, Df, Sum_Of_Squares, Mean_Square, F_Statistic)
+```
+`r knitr::kable(anova_table1)`
+
+Full model test result: F-value=64.917, p-value < 0.0001, reject the null.
+
+At least one of the predictors is related to response variable (mpg).
+
+Assessing individual coefficients: t-test
+
+H0: $\beta_i$ = 0
+
+HA: $\beta_i$ ≠ 0 (i=1,2,...,p)
+
+```{r echo=FALSE}
+summary(vehmod)
+```
+
+t-test results: after dropping volume, the coefficients for volume and class do not appear significant to the model.
+
+$\beta_{volume}$ $t_{cal}$ = -0.253, p = 0.800176, fail to reject null
+
+$\beta_{class:large}$ $t_{cal}$ = 1.027, p = 0.305421, fail to reject null
+
+$\beta_{class:midsize}$ $t_{cal}$ = 1.324, p = 0.186876, fail to reject null
+
+$\beta_{class:small}$ $t_{cal}$ = -1.229, p = 0.220451, fail to reject null
+
+Using stepwise regression procedure to find the best variables (using $p_{entry} = 0.1$, $p_{remove} = 0.3$):
+
+```{r include=F}
+vehmod_stepw = ols_step_both_p(vehmod, pent = 0.1, prem = 0.3, details=FALSE)
+```
+```{r echo=F}
+vehmod_stepw
+```
+
+The stepwise regression results differs with the above findings, keeping the displacement, turbo_super, start_stop, fuel, cylinders, and class variables in the model. The stepwise regression dropped volume.
+
+Assessing individual coefficients: t-test
+
+H0: $\beta_i$ = 0
+
+HA: $\beta_i$ ≠ 0 (i=1,2,...,p)
+
+```{r echo=FALSE}
+summary(vehmod_stepw$model)
+```
+
+t-test results: the coefficients for class do not appear significant to the model.
+
+$\beta_{class:large}$ $t_{cal}$ = 1.245, p = 0.214273, fail to reject null
+
+$\beta_{class:midsize}$ $t_{cal}$ = 1.551, p = 0.122170, fail to reject null
+
+$\beta_{class:small}$ $t_{cal}$ = -1.801, p = 0.073041, fail to reject null
+
+
+Assessing whether class and volume variables can be dropped: Partial F test
+
+H0: reduced model is true
+
+HA: larger model is true
+
+```{r echo=FALSE}
+vehmodreduced=lm(mpg
+                 ~factor(fuel)
+                 +cylinders
+                 +displacement
+                 +factor(start_stop)
+                 +factor(turbo_super)
+                 , data=veh)
+
+anova(vehmodreduced, vehmod)
+```
+ANOVA table
+```{r include=F}
+Source_Of_Variation = c("Regression", "Residual", "Total")
+Df = c(4,237,241)
+Sum_Of_Squares = c(176.48,4592.7,4769.2)
+Mean_Square = c(Sum_Of_Squares[1]/Df[1],Sum_Of_Squares[2]/Df[2],NA)
+F_Statistic = c(Mean_Square[1]/Mean_Square[2],NA,NA)
+anova_table2 = data.frame(Source_Of_Variation, Df, Sum_Of_Squares, Mean_Square, F_Statistic)
+```
+`r knitr::kable(anova_table2)`
+
+Partial F test results: $F_{cal}$ = 2.2767, p = 0.06176, fail to reject the null
+
+The reduced model and full model are not significantly different; the volume and class variables can be dropped.
+
+Checking that remaining variables are significant:
+
+```{r echo=F}
+summary(vehmodreduced)
+```
+
+Results table
+```{r include=F}
+beta_Coefficient = c("fuel:regular", "cylinders", "displacement", "start-stop:1", "turbo/super:Y")
+Estimate = c(3.7625,1.6271,-5.9725,4.7322,-7.8885)
+t_cal = c(4.763,3.143,-6.970,7.347,-10.162)
+p_value = c("p < 0.0001", 0.00188, "p < 0.0001", "p < 0.0001", "p < 0.0001")
+Decision = c("variable is significant","variable is significant","variable is significant","variable is significant","variable is significant")
+results_table0 = data.frame(beta_Coefficient, Estimate, t_cal, p_value, Decision)
+```
+`r knitr::kable(results_table0)`
+
+The first-order model without interactions is:
+
+$\hat{mpg} = 35.931561 +3.762522 \cdot fuel_{regular} +1.627059 \cdot cylinders -5.972539 \cdot displacement +4.732233 \cdot startstop_1$ 
+$-7.888531 \cdot turbosuper_Y$
+
+Model Assumption: Multicollinearity
+
+```{r echo=FALSE}
+#turn off warnings so they won't appear on output
+options(warn=-1)
+
+ggpairs(veh[c(1,5,6,12)],lower = list(continuous = "smooth_loess", combo ="facethist", discrete = "facetbar", na = "na")) +ggtitle("Pairs Plot")
+
+#turn warnings on again
+options(warn=0)
+```
+
+The pairs plot shows some collinearity between the cylinders and displacement variables, as seen with their linear relationship (and a correlation value of 0.941). 
+
+VIF
+```{r echo=F}
+vif(vehmodreduced)
+```
+
+The variance inflation factors also show critical levels of multicollinearity between the two variables.
+
+To determine which of the two colinear variables should be removed, models with either cylinders and displacement removed will be compared using their adjusted $R^2_{squared}$ values.
+
+```{r echo=FALSE}
+vehmodreducedc1=lm(mpg~factor(fuel)+displacement+factor(start_stop)+factor(turbo_super), data=veh)
+vehmodreducedc2=lm(mpg~factor(fuel)+cylinders+factor(start_stop)+factor(turbo_super), data=veh)
+```
+Model without cylinders
+```{r echo=F}
+summary(vehmodreducedc1)
+```
+Model without displacement
+```{r echo=F}
+summary(vehmodreducedc2)
+```
+
+Removing cylinders: adjusted $R^2_{squared}$ = 0.6829 
+
+Removing displacement: adjusted $R^2_{squared}$ = 0.6340
+
+Leaving the displacement variable in the model and removing the cylinders variable results in a higher value of adjusted $R^2_{squared}$. Therefore, we will use the model with cylinders removed.
+
+
+Model Assumption: Multicollinearity
+
+```{r echo=FALSE}
+ggpairs(veh[c(1,6,12)],lower = list(continuous = "smooth_loess", combo ="facethist", discrete = "facetbar", na = "na")) +ggtitle("Pairs Plot")
+```
+
+With cylinders now removed, there does no appear to be collinearity between the remaining quantitative variables in the pairs plot.
+
+VIF
+```{r echo=F}
+vif(vehmodreducedc1)
+```
+
+The variance inflation factors do not indicate the need for further corrective measures (all VIF < 5).
+
+New model:
+```{r echo=F}
+summary(vehmodreducedc1)
+```
+
+Results table
+```{r include=F}
+beta_Coefficient = c("fuel:regular", "displacement", "start-stop:1", "turbo/super:Y")
+Estimate = c(4.0830,-3.4419,4.8786,-6.8688)
+t_cal = c(5.119,-11.534,7.459,-9.566)
+p_value = c("p < 0.0001", "p < 0.0001", "p < 0.0001", "p < 0.0001")
+Decision = c("variable is significant","variable is significant","variable is significant","variable is significant")
+results_table01 = data.frame(beta_Coefficient, Estimate, t_cal, p_value, Decision)
+```
+`r knitr::kable(results_table01)`
+
+First-order model without interactions and cylinders removed:
+
+$\hat{mpg} = 36.7192 +4.0830 \cdot fuel_{regular} -3.4419 \cdot displacement +4.8786 \cdot startstop_1-6.8688 \cdot turbosuper_Y$
+
+
+$\textit{II.INTERACTION MODEL}$
+
+Assessing individual coefficients for interactions: t-test
+
+H0: $\beta_i$ = 0
+
+HA: $\beta_i$ ≠ 0 (i=1,2,...,p)
+
+```{r echo=FALSE}
+vehmodint=lm(mpg
+               ~(factor(fuel)
+               +displacement
+               +factor(start_stop)
+               +factor(turbo_super))^2, data=veh)
+summary(vehmodint)
+```
+
+All-interactions model observations, interactions which could be significant (t-test results, reject the null):
+
+$\beta_{fuel:Regular \cdot displacement}$ $t_{cal}$ = -5.578, p < 0.0001
+
+$\beta_{fuel:Regular \cdot turbosuper:Y}$ $t_{cal}$ = -4.351, p < 0.0001
+
+$\beta_{displacement \cdot startstop:1}$ $t_{cal}$ = -3.119, p = 0.002038 
+
+$\beta_{startstop:1 \cdot turbosuper:Y}$ $t_{cal}$ = -11.574, p < 0.0001
+
+Interations which do not appear significant (t-test results, fail to reject null):
+
+$\beta_{fuel:Regular \cdot startstop:1}$ $t_{cal}$ = -0.044, p = 0.965089
+
+$\beta_{fuel:Regular \cdot turbosuper:Y}$ $t_{cal}$ = -1.543, p = 0.124279
+
+
+Assess whether the interaction between $fuel:Regular \cdot startstop:1$ and $fuel:Regular \cdot turbosuper:Y$ variables can be dropped: Partial F test
+
+H0: reduced model is true
+
+HA: larger model is true
+
+```{r echo=FALSE}
+vehmodintreduced=lm(mpg~factor(fuel)
+                    +displacement
+                    +factor(start_stop)
+                    +factor(turbo_super)
+                    +factor(fuel)*displacement
+                    +factor(fuel)*factor(turbo_super)
+                    +displacement*factor(start_stop)
+                    +factor(start_stop)*factor(turbo_super)
+                    , data=veh)
+anova(vehmodintreduced,vehmodint)
+```
+
+ANOVA table
+```{r include=F}
+Source_Of_Variation = c("Regression", "Residual", "Total")
+Df = c(2,236,238)
+Sum_Of_Squares = c(20.303,1965.2,1985.5)
+Mean_Square = c(Sum_Of_Squares[1]/Df[1],Sum_Of_Squares[2]/Df[2],NA)
+F_Statistic = c(Mean_Square[1]/Mean_Square[2],NA,NA)
+anova_table3 = data.frame(Source_Of_Variation, Df, Sum_Of_Squares, Mean_Square, F_Statistic)
+```
+`r knitr::kable(anova_table3)`
+
+Full model test result: F-value=1.2191, p-value = 0.2974, fail to reject the null.
+
+The interactions between fuel type and start-stop, and fuel type and turbo/super, can be dropped from the model.
+
+```{r}
+summary(vehmodintreduced)
+```
+
+All interactions are significant, and all main effects are significant or involved in a significant interaction.
+
+Results table
+```{r include=F}
+beta_Coefficient = c("fuel:regular", "displacement", "start-stop:1", "turbo/super:Y", "fuel:regular · displacement", "fuel:regular · turbo/super:Y", "displacement · start-stop:1", "start-stop:1 · turbo/super:Y")
+Estimate = c(10.9722203,-2.7472969,16.2134428,-0.4361429,-2.8041620,-4.7146556,-1.6399655,-12.8383807)
+t_cal = c(7.398,-11.833,13.882,-0.543,-6.049,-4.785,-3.839,-14.104)
+p_value = c("< 0.0001","< 0.0001","< 0.0001",0.587733,"< 0.0001","< 0.0001",0.000159,"< 0.0001")
+Decision = c("variable is significant","variable is significant","variable is significant","variable is not significant, but involved in significant interactions","interaction is significant","interaction is significant","interaction is significant","interaction is significant")
+results_table1 = data.frame(beta_Coefficient, Estimate, t_cal, p_value, Decision)
+```
+`r knitr::kable(results_table1)`
+
+The first-order model with interactions is:
+
+$\hat{mpg} = 32.6039 +10.9722203 \cdot fuel_{regular} -2.7472969 \cdot displacement +16.2134428 \cdot startstop_1 -0.4361429 \cdot turbosuper_Y$
+$-2.8041620 \cdot fuel_{regular} \cdot displacement -4.7146556 \cdot fuel_{regular} \cdot turbosuper_Y -1.6399655 \cdot displacement \cdot startstop_1$
+$-12.8383807 \cdot startstop_1 \cdot turbosuper_Y$
+
+
+Model Assumption: Linearity
+
+```{r echo=FALSE}
+ggplot(vehmodintreduced, aes(x=.fitted, y=.resid)) + geom_point() + geom_smooth()+geom_hline(yintercept = 0) +ggtitle("Residuals plot")
+```
+
+The shape of the residuals plot appears mostly linear, following the horizontal line.
+
+Model Assumption: Independence
+
+As noted in the introduction, by limiting the data we used to only 2020 vehicles which were 2 wheel drive and automatic, we removed any non-independence by allowing model to only be represented once. We did not control for the make of the car, as we do not currently know how to include random factors or covariates, and only analyzing a single make would have reduced our datapoints to a very small number. However, since each make makes a variety of different models of different classes, I do not think that this will greatly impact the independence of the results. It would be ideal to control for make, but this is currently beyond our abilities.
+
+Additionally, we can not include make as a fixed factor, as this categorical variable contains roughly 80 levels.
+
+Model Assumption: Homoscedasticity
+
+```{r echo=FALSE}
+ggplot(vehmodintreduced, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +geom_point() +geom_hline(yintercept = 0) +geom_smooth()+ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") 
+```
+
+The residual points appear to be well distributed in the scale-location plot.
+
+Breusch-Pagan test
+
+H0: heteroscedasticity is not present
+
+HA: heteroscedasticity is present
+
+```{r echo=FALSE}
+bptest(vehmodintreduced)
+```
+
+The Breusch-Pagan test reveals heteroscedasticity is present (BP = 53.842, p < 0.0001, reject the null). The homoscedasticity assumption is violated.
+
+Model Assumption: Normality
+
+```{r echo=FALSE}
+ggplot(data=veh, aes(residuals(vehmodintreduced))) + 
+  geom_histogram(breaks = seq(-15,15,by=0.5), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+
+ggplot(veh, aes(sample=vehmodintreduced$residuals)) + stat_qq() + stat_qq_line() +ggtitle("Normal Q-Q plot")
+```
+
+The shape of the QQ plot shows that the data is normally distributed about the central values, but has longer tails than a normal distribution.
+
+Shapiro-Wilk test
+
+H0: the sample data are significantly normally distributed
+
+HA: the sample data are not significantly normally distributed
+
+```{r echo=FALSE}
+shapiro.test(vehmodintreduced$residuals)
+```
+
+The Shapiro-Wilk test reveals the data is not normally distributed (W = 0.9355, p < 0.0001). The normality assumption is violated.
+
+Model Assumption: Outliers
+
+```{r echo=FALSE}
+#outliers (Cook's distance, Leverage)
+plot(vehmodintreduced,which=5)
+```
+
+The plot of residuals vs leverage shows that the outliers in the data are not influential to the regression line (they are within a Cook's distance of 0.5).
+
+To address the violated assumptions (homoscedasticity, normality), we will attempt to use a Box Cox transformation.
+
+$\textit{III.BOX COX MODEL}$
+
+```{r echo=FALSE}
+b=boxcox(vehmodintreduced)
+```
+
+This plot illustrates that a value of -0.303 is our optimal lambda; i.e. the value which gives us the highest log-likelihood
+
+```{r echo=FALSE}
+lambda=b$x
+lik=b$y
+bc=cbind(lambda, lik)
+order=bc[order(-lik),]
+head(order)
+```
+The box cox method evaluates all values of lambnda between -5 and 5 and evaluates which lambda would be optimal for transforming your dependent variable so that it best approximates a normal distribution. This transformation only works when all values for dependent variables are positive, which ours are.
+By ranking the lambda values by log-likelihood, we can see that -0.303, which we will simplify to -(1/3), is the best lambda for our model, so we will put our dependent variable to this power.
+
+
+Assessing individual coefficients for the Box Cox transformed model: t-test
+
+H0: $\beta_i$ = 0
+
+HA: $\beta_i$ ≠ 0 (i=1,2,...,p)
+
+```{r echo=FALSE}
+coxmod=lm(mpg^(-(1/3))~factor(fuel)+displacement+factor(start_stop)+factor(turbo_super)+factor(fuel)*displacement+factor(fuel)*factor(turbo_super)+displacement*factor(start_stop)+factor(start_stop)*factor(turbo_super), data=veh)
+
+summary(coxmod)
+```
+
+t-test result: the interaction between the displacement and start-stop variables does not appear significant to the model ($t_{cal}$ = 1.944, p = 0.053114) 
+
+Assessing whether the displacement and start-stop interaction can be dropped: Partial F test
+
+H0: reduced model is true
+
+HA: larger model is true
+
+```{r echo=FALSE}
+coxmod_reduced <- lm(mpg^(-(1/3))~factor(fuel)+displacement+factor(start_stop)+factor(turbo_super)+factor(fuel)*displacement+factor(fuel)*factor(turbo_super)+factor(start_stop)*factor(turbo_super), data=veh)
+
+anova(coxmod_reduced,coxmod)
+```
+
+ANOVA table
+```{r include=F}
+Source_Of_Variation = c("Regression", "Residual", "Total")
+Df = c(1,238,239)
+Sum_Of_Squares = c(0.00039731,0.025030,0.025427)
+Mean_Square = c(Sum_Of_Squares[1]/Df[1],Sum_Of_Squares[2]/Df[2],NA)
+F_Statistic = c(Mean_Square[1]/Mean_Square[2],NA,NA)
+anova_table4 = data.frame(Source_Of_Variation, Df, Sum_Of_Squares, Mean_Square, F_Statistic)
+```
+`r knitr::kable(anova_table4)`
+
+Partial F test results: $F_{cal}$ = 3.7779, p = 0.05311, fail to reject the null
+
+The reduced model and full model are not significantly different; the interaction between the displacement and start-stop variables can be dropped.
+
+```{r echo=FALSE}
+summary(coxmod_reduced)
+```
+
+All interactions and main effects are significant.
+
+Comparing the previous and transformed model: adjusted $R^2_{squared}$ values
+```{R echo=FALSE}
+# first-order model with interactions
+summary(vehmodintreduced)$adj.r.squared
+# box cox transformed model
+summary(coxmod_reduced)$adj.r.squared
+```
+
+First-order model with interactions, adjusted $R^2_{squared}$ = 0.871048
+
+Box cox transformed model, adjusted $R^2_{squared}$ = 0.8827172
+
+The adjusted $R^2_{squared}$ value for the Box Cox transformed model is higher than the untransformed model, indicating that the Box Cox transformed model explains more of the variation in the data than the untransformed model.
+
+Results table
+```{r include=F}
+beta_Coefficient = c("fuel:regular", "displacement", "start-stop:1", "turbo/super:Y", "fuel:regular · displacement", "fuel:regular · turbo/super:Y", "start-stop:1 · turbo/super:Y")
+Estimate = c(-0.0199291,0.0173914,-0.0319711,0.0104278,0.0047508,0.0079219,0.0339489)
+t_cal = c(-3.776,22.638,-12.750,3.636,2.880,2.255,10.635)
+p_value = c(0.000201, "< 0.0001", "< 0.0001", 0.000339, 0.004337, 0.025018, "< 0.0001")
+Decision = c("variable is significant","variable is significant","variable is significant","variable is significant","interaction is significant","interaction is significant","interaction is significant")
+results_table2 = data.frame(beta_Coefficient, Estimate, t_cal, p_value, Decision)
+```
+`r knitr::kable(results_table2)`
+
+The Box Cox transformed model is:
+
+$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2897848 -0.0199291 \cdot fuel_{regular} +0.0173914 \cdot displacement -0.0319711 \cdot startstop_1 +0.0104278 \cdot turbosuper_Y$
+$+0.0047508 \cdot fuel_{regular} \cdot displacement +0.0079219 \cdot fuel_{regular} \cdot turbosuper_Y +0.0339489 \cdot startstop_1 \cdot turbosuper_Y$
+
+Model Assumption: Linearity
+
+```{r echo=FALSE}
+ggplot(vehmodintreduced, aes(x=.fitted, y=.resid)) + geom_point() + geom_smooth()+geom_hline(yintercept = 0) +ggtitle("Residuals plot")
+```
+
+The shape of the residuals plot appears mostly linear.
+
+Model Assumption: Homoscedasticity
+
+```{r echo=FALSE}
+ggplot(coxmod_reduced, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +geom_point() +geom_hline(yintercept = 0) +geom_smooth()+ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") 
+```
+
+The residual points appear to be well distributed in the scale-location plot.
+
+Breusch-Pagan test
+
+H0: heteroscedasticity is not present
+
+HA: heteroscedasticity is present
+
+```{r echo=FALSE}
+bptest(coxmod_reduced)
+```
+
+The Breusch-Pagan test now reveals that the distribution of the residuals is homoscedastic (BP = 13.319, p = 0.06471, fail to reject the null).
+
+Model Assumption: Normality
+
+```{r echo=FALSE}
+ggplot(data=veh, aes(residuals(coxmod_reduced))) + 
+  geom_histogram(breaks = seq(-0.06,0.06,by=0.0025), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+
+ggplot(veh, aes(sample=coxmod_reduced$residuals)) + stat_qq() + stat_qq_line() +ggtitle("Normal Q-Q plot")
+```
+
+The shape of the histogram and QQ plot shows that the data is normally distributed about the central values, but there is a group of residuals which make the distribution slightly bimodal.
+
+Shapiro-Wilk test
+
+H0: the sample data are significantly normally distributed
+
+HA: the sample data are not significantly normally distributed
+
+```{r echo=FALSE}
+shapiro.test(coxmod_reduced$residuals)
+```
+
+The Shapiro-Wilk test reveals the data is not normally distributed (W = 0.96665, p < 0.0001). However, the Shapiro-Wilk test is conservative and most of the residuals are aligned with the theoretical normal distribution in the Q-Q plot so, via a visual inspection we can argue our case that the distribution is normal, and it is just the overly conservative nature of the Shapiro-Wilk test which causes it to deem the residuals non-normal.
+
+
+Model Assumption: Outliers
+
+```{r echo=FALSE}
+#outliers (Cook's distance, Leverage)
+plot(coxmod_reduced,which=5)
+```
+
+As before, the plot of residuals vs leverage shows that the outliers in the data are not influential to the regression line (they are within a Cook's distance of 0.5).
+
+The analysis has determined that our best model is the Box Cox transformed model
+
+$\textbf{Chapter 4: Conclusion}$
+
+As a conclusion, our best fitted model to predict the miles per gallon will be the reduced box cox transformed model, which is: $\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2897848 -0.0199291 \cdot fuel_{regular} +0.0173914 \cdot displacement -0.0319711 \cdot startstop_1 +0.0104278 \cdot turbosuper_Y$
+$+0.0047508 \cdot fuel_{regular} \cdot displacement +0.0079219 \cdot fuel_{regular} \cdot turbosuper_Y +0.0339489 \cdot startstop_1 \cdot turbosuper_Y$
+
+, and the independent variables are The type of fuel the vehicle requires, The total volume of all the cylinders in an engine, factor start or stop system, factor Whether the vehicle has a turbo or supercharger, and their interaction variables fuel times displacement, fuel times turbo, and stratstop times turbo.
+
+
+
+### Summation why this model is the best:
+
+```{r include=F}
+Models = c("FIRST-ORDER MODEL","REDUCED FIRST-ORDER MODEL","INTERACTION MODEL","REDUCED INTERACTION MODEL","BOXCOX MODEL","REDUCED BOXCOX MODEL")
+R_squre = c(0.7114,0.688,0.8765,0.8752,0.8878,0.8861)
+adj_R_squre = c(0.7005,0.6829,0.8713,0.871,0.8841,0.8827)
+RMSE = c(4.402,4.529,2.886,2.888,0.01026,0.01031)
+coefficients_t_test= c("not all variables are significant","all variables are significant","not all variables are significant","all variables are significant","not all variables are significant","all variables are significant")
+ALLMODELTABLE = data.frame(Models, R_squre, adj_R_squre, RMSE, coefficients_t_test)
+```
+`r knitr::kable(ALLMODELTABLE)`
+
+As we can see from the summary table, even though the non-reduced box cox model’s adj R^2 is slightly higher, one of the variables in the non-reduced model is not significant. All variables within the reduced box cox model are significant and it has the second highest adj R^2 and second lowest RMSE, so we will pick the reduced box cox model as the best model. The shape of the residuals plot for this reduced box cox model appears linear. Our pre-transformation models sufferred from heteroscedasticity, but the reduced box cox model does is homoscedastic; the p-value from the Breusch-Pagan test is 0.06471. Even though, for the Normality assumption, our model did not pass the Shapiro-Wilk test, it looks normal, so from a visual inspection of the data in the QQ plot we can argue that the normality assumption is met and that the Shapiro-Wilk test is providing us an overly conservative result. Therefore we would still argue that the model dose satisfy the normality assumption. Moreover, the pairs plot shows no collinearity between our variables, and the residual vs leverage plot shows that all the outliers in the data are within a Cook’s distance of 0.5, which means they are not influential to the regression line. 
+
+
+### Interpret the effects:
+
+Regular fuel
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2698557 + 0.0221422 \cdot displacement$$
+
+Regular fuel and a start-stop system
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2378846 + 0.0221422 \cdot displacement$$
+
+Regular fuel and a turbo or supercharger
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2882054 + 0.0221422 \cdot displacement$$
+
+Regular fuel with a start-stop system and turbo or supercharger
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2901832 + 0.0221422 \cdot displacement$$
+Premium fuel
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2897848 +0.0173914 \cdot displacement$$
+
+Premium fuel and a start-stop system
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.2578137+0.0173914 \cdot displacement$$
+
+Premium fuel and a turbo or supercharger
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.3002126 +0.0173914 \cdot displacement$$
+
+Premium fuel with a start-stop system and turbo or supercharger 
+
+$$\frac{1}{\sqrt[3]{\hat{mpg}}} = 0.3021904 +0.0173914 \cdot displacement$$
+
+
+#### Fuel(regular fuel=1, premium fule=0): 
+
+The effect of fuel is 0.0199291$\cdot$fuel + 0.0047508$\cdot$fuel$\cdot$displacement +0.0079219$\cdot$fuel$\cdot$turbo, 
+This means that for a given amount of displacement, and turbo, using regular fuel will leads to a increase in mpg^(-1/3) of 0.0199291 + 0.0047508 $\cdot$displacement +0.0079219$\cdot$turbo compared to using premium fuel. 
+
+#### Startstop system(Yes=1,No=0):
+
+The effect of startstop is -0.0319711$\cdot$startstop+0.0339489$\cdot$startstop$\cdot$turbo,
+This means that, for a given amount of displacement and known turbo and fuel type, having a startstop system on the car will lead to an increase/decrease in mpg^(-1/3) of -0.0319711 +0.0339489\cdot$turbo compared to the cars that don’t have a startstop system. 
+
+
+#### Turbo(Yes=1,No=0):
+
+The effect of turbo is 0.0104278$\cdot$turbo+0.0079219$\cdot$fule$\cdot$turbo+0.0339489$\cdot$startstop$\cdot$turbo, 
+This means that, for a given amount of displacement and known type of fuel and startstop system, having a turbo or supercharge on the car will leads to an increase/decrease on the mpg^(-1/3) for +0.0079219$\cdot$fule +0.0339489$\cdot$startstop compare with cars that do not have a turbo or supercharge. 
+
+
+#### Displacement:
+
+The effect of displacement is 0.0173914 +0.0047508$\cdot$(1) when the car is using regular fuel, 
+This means that, for a given amount of displacement, an increase in displacement of 1 unit will lead to an increase in mpg^(-1/3) by 0.0173914 +0.0047508$\cdot$(1).
+
+The effect of displacement is 0.0173914 when the car is using premium fuel, 
+This means that, for a given amount of displacement, an increase in displacement of 1 unit lead to an increase in mpg^(-1/3) by 0.0173914.
+
+So the miles-per-gallon for a 2020, 2 wheel-drive, automatic vehicle with 2.0L displacement is estimated to be:
+
+```{r include=F}
+fuel_type = c("Regular","Regular","Regular","Regular","Premium","Premium","Premium","Premium")
+extras = c(NA,"start-stop system", "turbo/supercharger", "start-stop system and turbo/supercharger",NA,"start-stop system", "turbo/supercharger", "start-stop system and turbo/supercharger")
+mgp = c(32.25744,44.51149,27.20602,26.72624,29.24721,39.92019,27.20602,26.13448)
+displacement = c("2.0L","2.0L","2.0L","2.0L","2.0L","2.0L","2.0L","2.0L")
+estimated_mpg = c(32.3,44.5,27.2,26.7,29.2,39.9,27.2,26.1)
+ex_table = data.frame(fuel_type,extras,displacement,estimated_mpg)
+```
+
+`r knitr::kable(ex_table)`
+
+
+
+### Interpret the accurately:
+
+
+For our best fitted model (reduced box cox model), the R^2 adj is 0.8827. This means that 88.27% of the variation of the miles per gallon is explained by the model. RMSE for this model is 0.01031, meaning the square root of the average of squared differences between our prediction for mpg and our actual observed values for mpg in our data is 0.01031. This is a measure of how far the actual data points are from the regression line; our RMSE value is very close to 0, which indicates a good fit. 
+
+
+
+### Discussion:
+
+Answers to Research questions:
+
+-Whether a vehicle had start and stop technology did significantly influence the vehicle's fuel consumption, and this interacted with certain other variables.
+
+-The following variables affected the fuel consumption of the vehicle, either as a main effect or in a significant interaction: 
+  -fuel type
+  -whether the vehicle has start and stop technology or not
+  -Whether the car is turbocharged/supercharged or not
+  -The displacement of the engine
+
+-The variables of cylinders and dicplacement were correlated; this makes sense as displacement is a measure of the total volume of the cylinders
+
+Potential Improvements:
+The model could be improved through the inclusion of random factors. By including Make, Model, Drive (2 wheel or 4 wheel) and Transmission (automatic or manual) as random factors we could control for these variables and then compare amongst all of the data in the initial table without violating any assumptions of independence. As stated above, this is currently beyond ouit abilities, thus we had to control for these variables by only using a subset of the data. More data would make our model more powerful, and would allow us to better identify the influence of out independent variables on our dependent variables.
+
+Also, for simplicity's sake, we collapsed many categorical variables down to fewer levels. e.g. we simplified class into only 4 categories while, in the original dataframe, this factor contained 18 levels, which would have made interpreting the correlation coefficients of the main effects and interaction terms in our model overly complicated. Potentially, there are better simplification solutions which would retain more of the information present in the original data. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
